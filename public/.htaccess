@@ -3,22 +3,57 @@
         Options -MultiViews -Indexes
     </IfModule>
 
+    # 🔐 Bloquer l'accès aux fichiers sensibles (.env, .git, .htaccess, .htpasswd, etc.)
+    <FilesMatch "(\.env|\.git|\.htaccess|\.htpasswd|composer\.(lock|json)|package\.(json|lock))">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+
+    # 🔒 Empêcher l'exécution des fichiers PHP dans le dossier storage et uploads
+    RewriteRule ^(storage|uploads)/.*\.(php|phps)$ - [F,L]
+
+    # 🚀 Activer le SSL (HTTPS) - redirection automatique vers HTTPS
+    RewriteCond %{HTTPS} !=on
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # 📛 Protection contre le Clickjacking
+    Header always append X-Frame-Options SAMEORIGIN
+
+    # 🛡️ Protection contre XSS
+    Header set X-XSS-Protection "1; mode=block"
+
+    # 🔄 Protection contre le sniffing MIME
+    Header set X-Content-Type-Options nosniff
+
+    # 🚫 Bloquer l'accès direct aux fichiers PHP dans public/
+    RewriteRule ^public/.*\.(php)$ - [F,L]
+
+    # 🛑 Désactiver l'affichage des erreurs PHP
+    php_flag display_errors Off
+    php_flag log_errors On
+
+    # 🔐 Interdire l'accès au fichier .htaccess
+    <Files .htaccess>
+        Order allow,deny
+        Deny from all
+    </Files>
+
     RewriteEngine On
 
     # Handle Authorization Header
-    RewriteCond %{HTTP:Authorization} .
+    RewriteCond %{HTTP:Authorization} . 
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
     # Handle X-XSRF-Token Header
-    RewriteCond %{HTTP:x-xsrf-token} .
+    RewriteCond %{HTTP:x-xsrf-token} . 
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
-    # Redirect Trailing Slashes If Not A Folder...
+    # Rediriger les slashs de fin si ce n'est pas un dossier
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
-    # Send Requests To Front Controller...
+    # Envoyer toutes les requêtes vers le contrôleur frontal (index.php)
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
